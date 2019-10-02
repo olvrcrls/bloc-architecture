@@ -3,14 +3,30 @@ import 'package:flutter/material.dart';
 class Home extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
+        // The limitation of the FutureBuilder is that
+        // it cannot re-run the method data once again.
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            _getListData();
+          },
+        ),
         backgroundColor: Colors.grey[900],
         body: FutureBuilder(
-            future: _getListData(),
+            future: _getListData(hasData: false),
             builder: (buildContext, snapshot) {
+
+              if (snapshot.hasError) {
+                return _getInformationMessage(snapshot.error);
+              }
+
               if (!snapshot.hasData) {
                 return Center(child: CircularProgressIndicator());
               }
               var listItems = snapshot.data;
+              if (listItems.length == 0) {
+                return _getInformationMessage("No data fetched.");
+              }
+
               return ListView.builder(
                 itemCount: listItems.length,
                 itemBuilder: (buildContext, index) =>
