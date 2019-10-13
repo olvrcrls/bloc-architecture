@@ -1,6 +1,25 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
-class Home extends StatelessWidget {
+enum HomeViewState { Busy, DataRetrieved, NoData }
+
+class Home extends StatefulWidget {
+  @override
+  _HomeState createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  final StreamController<HomeViewState> stateController =
+      StreamController<HomeViewState>();
+
+  List<String> listItems;
+
+  @override
+  void initState() {
+    _getListData();
+    super.initState();
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
         // The limitation of the FutureBuilder is that
@@ -11,18 +30,17 @@ class Home extends StatelessWidget {
           },
         ),
         backgroundColor: Colors.grey[900],
-        body: FutureBuilder(
-            future: _getListData(hasData: false),
+        body: StreamBuilder(
+            stream: stateController.stream,
             builder: (buildContext, snapshot) {
-
               if (snapshot.hasError) {
                 return _getInformationMessage(snapshot.error);
               }
 
-              if (!snapshot.hasData) {
+              if (!snapshot.hasData || snapshot.data == HomeViewState.Busy) {
                 return Center(child: CircularProgressIndicator());
               }
-              var listItems = snapshot.data;
+              
               if (listItems.length == 0) {
                 return _getInformationMessage("No data fetched.");
               }
@@ -35,17 +53,19 @@ class Home extends StatelessWidget {
             }));
   }
 
-  Future<List<String>> _getListData(
+  Future _getListData(
       {bool hasError = false, bool hasData = true}) async {
+    stateController.add(HomeViewState.Busy);
     await Future.delayed(Duration(seconds: 2));
     if (hasError) {
-      return Future.error("An error has occured please try again.");
+      return stateController.addError("An error has occured please try again.");
     }
 
     if (hasData) {
-      return List<String>.generate(10, (index) => '$index title');
+      listItems = List<String>.generate(10, (index) => '$index title');
+      stateController.add(HomeViewState.DataRetrieved);
     } else {
-      return List<String>();
+      return stateController.add(HomeViewState.NoData);
     }
   }
 
