@@ -1,7 +1,7 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-
-enum HomeViewState { Busy, DataRetrieved, NoData }
+import 'package:bloc_architecture/events/home_event.dart';
+import 'package:bloc_architecture/models/home_model.dart';
+import 'package:bloc_architecture/states/home_state.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -9,14 +9,10 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  final StreamController<HomeViewState> stateController =
-      StreamController<HomeViewState>();
-
-  List<String> listItems;
-
+  final model = HomeModel();
   @override
   void initState() {
-    _getListData();
+    model.dispatch(FetchData());
     super.initState();
   }
 
@@ -24,47 +20,35 @@ class _HomeState extends State<Home> {
     return Scaffold(
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            _getListData();
+            model.dispatch(FetchData(hasData: false));
           },
         ),
         backgroundColor: Colors.grey[900],
         body: StreamBuilder(
-            stream: stateController.stream,
+            stream: model.homeState,
             builder: (buildContext, snapshot) {
               if (snapshot.hasError) {
                 return _getInformationMessage(snapshot.error);
               }
 
-              if (!snapshot.hasData || snapshot.data == HomeViewState.Busy) {
+              var homeState = snapshot.data;
+              print('Home State: $homeState');
+
+              if (!snapshot.hasData || homeState is BusyHomeState) {
                 return Center(child: CircularProgressIndicator());
               }
-              
-              if (listItems.length == 0) {
-                return _getInformationMessage("No data fetched.");
-              }
 
+              if (homeState is DataFetchedHomeState) {
+                if (!homeState.hasData) {
+                  return _getInformationMessage("No data found on your account.\nAdd something and come back.");
+                }
+              }
               return ListView.builder(
-                itemCount: listItems.length,
+                itemCount: homeState.data.length,
                 itemBuilder: (buildContext, index) =>
-                    _getListItemUi(index, listItems),
+                    _getListItemUi(index, homeState.data),
               );
             }));
-  }
-
-  Future _getListData(
-      {bool hasError = false, bool hasData = true}) async {
-    stateController.add(HomeViewState.Busy);
-    await Future.delayed(Duration(seconds: 2));
-    if (hasError) {
-      return stateController.addError("An error has occured please try again.");
-    }
-
-    if (hasData) {
-      listItems = List<String>.generate(10, (index) => '$index title');
-      stateController.add(HomeViewState.DataRetrieved);
-    } else {
-      return stateController.add(HomeViewState.NoData);
-    }
   }
 
   Widget _getListItemUi(int index, List<String> listItems) {
