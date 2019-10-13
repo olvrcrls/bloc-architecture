@@ -22,8 +22,6 @@ class _HomeState extends State<Home> {
 
   Widget build(BuildContext context) {
     return Scaffold(
-        // The limitation of the FutureBuilder is that
-        // it cannot re-run the method data once again.
         floatingActionButton: FloatingActionButton(
           onPressed: () {
             _getListData();
